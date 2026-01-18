@@ -1978,6 +1978,8 @@ function Start-InteractiveMode {
     $status = Get-AllToolStatus
 
     while ($true) {
+        Clear-Host
+        Show-Banner
         Show-StatusTable -Status $status
         Show-CommandHint
 
