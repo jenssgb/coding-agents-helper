@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Coding Agents Helper - Manage Coding Agent CLI tools
 
@@ -112,7 +112,7 @@ param(
 
 #region Script Variables
 
-$script:Version = "1.0.0"
+$script:Version = "1.1.0"
 $script:LogFile = Join-Path $env:TEMP "CodingAgentsHelper.log"
 
 #endregion
@@ -2085,3 +2085,4 @@ else {
 }
 
 #endregion
+
