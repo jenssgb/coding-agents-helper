@@ -99,3 +99,23 @@ The file must be saved as **UTF-8 with BOM** for PowerShell to correctly handle 
 **Native Windows:** Claude Code, GitHub Copilot CLI, OpenCode, OpenAI Codex CLI, Aider, VS Code, VS Code Insiders
 
 **WSL Required:** Cursor CLI, Cline, Kiro CLI (Amazon Q)
+
+## Versioning & Releases
+
+This project uses **Conventional Commits** for automated versioning:
+
+```powershell
+# Commit message prefixes determine version bumps:
+git commit -m "fix: ..."     # → PATCH (1.0.x)
+git commit -m "feat: ..."    # → MINOR (1.x.0)
+git commit -m "feat!: ..."   # → MAJOR (x.0.0)
+
+# Create release (analyzes commits, bumps version, creates tag)
+.\release.ps1 -DryRun   # Preview
+.\release.ps1 -Push     # Release and push
+
+# Manual version bump
+.\bump-version.ps1 -Type patch|minor|major
+```
+
+The version is stored in `$script:Version` (line ~115) in `CodingAgentsHelper.ps1`.
