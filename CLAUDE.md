@@ -4,31 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Single-file PowerShell script (`CodingAgentsHelper.ps1`) that manages coding agent CLI tools on Windows. Supports both native Windows tools and WSL-based tools with install, update, repair, and status checking capabilities.
+**AgentHelper** - Single-file PowerShell script (`agenthelper.ps1`) that manages coding agent CLI tools on Windows. Supports both native Windows tools and WSL-based tools with install, update, repair, and status checking capabilities.
 
 ## Running the Script
 
 ```powershell
 # Interactive mode
-.\CodingAgentsHelper.ps1
+.\agenthelper.ps1
 
 # Check status of all tools
-.\CodingAgentsHelper.ps1 -Status
+.\agenthelper.ps1 -Status
 
 # JSON output for scripting
-.\CodingAgentsHelper.ps1 -Status -OutputFormat Json
+.\agenthelper.ps1 -Status -OutputFormat Json
 
 # Install a specific tool
-.\CodingAgentsHelper.ps1 -Install ClaudeCode
+.\agenthelper.ps1 -Install ClaudeCode
 
 # Install all tools
-.\CodingAgentsHelper.ps1 -Install All -PreferredMethod WinGet
+.\agenthelper.ps1 -Install All -PreferredMethod WinGet
 
 # Update tools
-.\CodingAgentsHelper.ps1 -Update All
+.\agenthelper.ps1 -Update All
 
 # Check environment (prerequisites, API keys)
-.\CodingAgentsHelper.ps1 -Environment
+.\agenthelper.ps1 -Environment
 ```
 
 ## Syntax Validation
@@ -36,7 +36,7 @@ Single-file PowerShell script (`CodingAgentsHelper.ps1`) that manages coding age
 ```powershell
 # Parse file for syntax errors
 $null = [System.Management.Automation.Language.Parser]::ParseFile(
-    'CodingAgentsHelper.ps1', [ref]$null, [ref]$errors
+    'agenthelper.ps1', [ref]$null, [ref]$errors
 )
 $errors  # Should be empty
 ```
@@ -118,4 +118,4 @@ git commit -m "feat!: ..."   # → MAJOR (x.0.0)
 .\bump-version.ps1 -Type patch|minor|major
 ```
 
-The version is stored in `$script:Version` (line ~115) in `CodingAgentsHelper.ps1`.
+The version is stored in `$script:Version` (line ~115) in `agenthelper.ps1`.

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Bumps the version number in CodingAgentsHelper.ps1
+    Bumps the version number in agenthelper.ps1
 
 .DESCRIPTION
     Updates the $script:Version variable according to Semantic Versioning (SemVer).
@@ -31,10 +31,10 @@ param(
     [switch]$DryRun
 )
 
-$scriptFile = Join-Path $PSScriptRoot 'CodingAgentsHelper.ps1'
+$scriptFile = Join-Path $PSScriptRoot 'agenthelper.ps1'
 
 if (-not (Test-Path $scriptFile)) {
-    Write-Host "Error: CodingAgentsHelper.ps1 not found" -ForegroundColor Red
+    Write-Host "Error: agenthelper.ps1 not found" -ForegroundColor Red
     exit 1
 }
 
@@ -84,7 +84,7 @@ if ($content -match '\$script:Version\s*=\s*"(\d+)\.(\d+)\.(\d+)"') {
         # Write back with UTF8 BOM (required for PowerShell Unicode support)
         Set-Content $scriptFile $newContent -Encoding UTF8
 
-        Write-Host "  ✓ Updated CodingAgentsHelper.ps1" -ForegroundColor Green
+        Write-Host "  ✓ Updated agenthelper.ps1" -ForegroundColor Green
     }
 
     # Return the new version for use in other scripts

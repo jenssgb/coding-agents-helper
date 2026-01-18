@@ -272,7 +272,7 @@ if (-not $newVersion) {
 
 # Stage and commit
 Write-Host ""
-git add CodingAgentsHelper.ps1
+git add agenthelper.ps1
 if ($LASTEXITCODE -ne 0) {
     Write-Step "Failed to stage changes" -Status error
     exit 1

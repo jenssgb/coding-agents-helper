@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Coding Agents Helper - Manage Coding Agent CLI tools
+    AgentHelper - Manage Coding Agent CLI tools
 
 .DESCRIPTION
     PowerShell script for managing Coding Agent CLI tools with install, update,
@@ -43,32 +43,32 @@
     Default: Table
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1
+    .\agenthelper.ps1
     Run in interactive mode
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1 -Status
+    .\agenthelper.ps1 -Status
     Show status of all tools
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1 -Status -OutputFormat Json
+    .\agenthelper.ps1 -Status -OutputFormat Json
     Show status in JSON format
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1 -Install ClaudeCode
+    .\agenthelper.ps1 -Install ClaudeCode
     Install Claude Code
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1 -Install All -PreferredMethod WinGet
+    .\agenthelper.ps1 -Install All -PreferredMethod WinGet
     Install all tools using WinGet where available
 
 .EXAMPLE
-    .\CodingAgentsHelper.ps1 -Update All
+    .\agenthelper.ps1 -Update All
     Update all installed tools
 
 .NOTES
     Version: 1.0.0
-    Author: Coding Agents Helper
+    Author: AgentHelper
     Requires: PowerShell 5.1 or later
 #>
 
@@ -113,7 +113,7 @@ param(
 #region Script Variables
 
 $script:Version = "1.1.0"
-$script:LogFile = Join-Path $env:TEMP "CodingAgentsHelper.log"
+$script:LogFile = Join-Path $env:TEMP "agenthelper.log"
 
 #endregion
 
@@ -890,7 +890,7 @@ function Get-LatestGitHubVersion {
         $uri = "https://api.github.com/repos/$Owner/$Repo/releases/latest"
         $headers = @{
             'Accept' = 'application/vnd.github.v3+json'
-            'User-Agent' = 'CodingAgentsHelper'
+            'User-Agent' = 'AgentHelper'
         }
 
         # Use GitHub token if available
@@ -1716,7 +1716,7 @@ function Show-Banner {
     Write-BoxText -Text "" -Left $script:BoxChars.DoubleVertical -Right $script:BoxChars.DoubleVertical -Width $width -TextColor Cyan
 
     # Title line with tool emoji
-    $title = "$($script:MenuIcons.Repair)  CODING AGENTS HELPER  v$script:Version"
+    $title = "$($script:MenuIcons.Repair)  AGENTHELPER  v$script:Version"
     Write-BoxText -Text $title -Left $script:BoxChars.DoubleVertical -Right $script:BoxChars.DoubleVertical -Width $width -TextColor White -Center
 
     # Empty line
