@@ -359,6 +359,19 @@ $script:MenuIcons = @{
     Back = '←'
 }
 
+$script:ToolAliases = @{
+    'claude' = 'ClaudeCode'
+    'copilot' = 'CopilotCLI'
+    'opencode' = 'OpenCode'
+    'codex' = 'Codex'
+    'aider' = 'Aider'
+    'cursor' = 'CursorCLI'
+    'cline' = 'Cline'
+    'kiro' = 'KiroCLI'
+    'vscode' = 'VSCode'
+    'vscode-insiders' = 'VSCodeInsiders'
+}
+
 #endregion
 
 #region UI Helper Functions
@@ -780,7 +793,7 @@ function Add-ToPath {
             $newUserPath = (@($Directory) + $userPathEntries) -join ';'
             [Environment]::SetEnvironmentVariable('PATH', $newUserPath, 'User')
             Write-Log "Added to permanent User PATH: $Directory"
-            Write-ColorOutput "  PATH aktualisiert: $Directory" -ForegroundColor DarkGray
+            Write-ColorOutput "  PATH updated: $Directory" -ForegroundColor DarkGray
         }
     }
 
@@ -811,7 +824,7 @@ function Ensure-ToolInPath {
     }
 
     # Tool not found - try to locate it
-    Write-ColorOutput "  Tool '$exe' nicht im PATH gefunden. Suche..." -ForegroundColor Yellow
+    Write-ColorOutput "  Tool '$exe' not found in PATH. Searching..." -ForegroundColor Yellow
 
     # Common locations to search
     $searchPaths = @(
@@ -831,14 +844,14 @@ function Ensure-ToolInPath {
         $found = Get-ChildItem -Path $basePath -Filter "$exe.exe" -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object -First 1
         if ($found) {
             $exeDir = $found.DirectoryName
-            Write-ColorOutput "  Gefunden: $($found.FullName)" -ForegroundColor Green
+            Write-ColorOutput "  Found: $($found.FullName)" -ForegroundColor Green
 
             if ($AutoFix) {
                 Add-ToPath -Directory $exeDir -Permanent
                 return @{ Accessible = $true; Path = $found.FullName; Added = $true }
             }
             else {
-                Write-ColorOutput "  Fuege diesen Pfad zum PATH hinzu: $exeDir" -ForegroundColor Yellow
+                Write-ColorOutput "  Please add this path to PATH: $exeDir" -ForegroundColor Yellow
                 return @{ Accessible = $false; Path = $found.FullName; SuggestedPath = $exeDir }
             }
         }
@@ -1174,7 +1187,7 @@ function Install-CodingTool {
         Start-Sleep -Seconds 2
 
         # Refresh PATH to pick up newly installed tools
-        Write-Host "Aktualisiere PATH..."
+        Write-Host "Refreshing PATH..."
         Refresh-EnvironmentPath
 
         # Verify tool is accessible
@@ -1188,7 +1201,7 @@ function Install-CodingTool {
             if (-not $tool.RequiresWSL) {
                 $pathCheck = Ensure-ToolInPath -Tool $tool -AutoFix
                 if ($pathCheck.Added) {
-                    Write-ColorOutput "  PATH wurde automatisch korrigiert." -ForegroundColor Green
+                    Write-ColorOutput "  PATH was automatically fixed." -ForegroundColor Green
                 }
             }
 
@@ -1196,22 +1209,22 @@ function Install-CodingTool {
         }
         else {
             # Installation might have succeeded but tool not in PATH
-            Write-ColorOutput "Version konnte nicht ermittelt werden. Pruefe PATH..." -ForegroundColor Yellow
+            Write-ColorOutput "Could not determine version. Checking PATH..." -ForegroundColor Yellow
 
             if (-not $tool.RequiresWSL) {
                 $pathCheck = Ensure-ToolInPath -Tool $tool -AutoFix
                 if ($pathCheck.Accessible) {
-                    Write-ColorOutput "$($tool.Name) ist jetzt verfuegbar!" -ForegroundColor Green
+                    Write-ColorOutput "$($tool.Name) is now available!" -ForegroundColor Green
                     return $true
                 }
                 elseif ($pathCheck.SuggestedPath) {
-                    Write-ColorOutput "Bitte fuegen Sie manuell zum PATH hinzu: $($pathCheck.SuggestedPath)" -ForegroundColor Yellow
+                    Write-ColorOutput "Please add manually to PATH: $($pathCheck.SuggestedPath)" -ForegroundColor Yellow
                     return $true
                 }
             }
 
-            Write-ColorOutput "Installation moeglicherweise erfolgreich, aber Tool nicht erreichbar" -ForegroundColor Yellow
-            Write-ColorOutput "Bitte starten Sie das Terminal neu oder fuegen Sie den Installationspfad zum PATH hinzu." -ForegroundColor Yellow
+            Write-ColorOutput "Installation may have succeeded, but tool is not accessible" -ForegroundColor Yellow
+            Write-ColorOutput "Please restart your terminal or add the installation path to PATH." -ForegroundColor Yellow
             return $true
         }
     }
@@ -1302,11 +1315,11 @@ function Update-CodingTool {
         }
         else {
             # Version check failed - might be PATH issue
-            Write-ColorOutput "Version konnte nicht ermittelt werden. Pruefe PATH..." -ForegroundColor Yellow
+            Write-ColorOutput "Could not determine version. Checking PATH..." -ForegroundColor Yellow
             if (-not $tool.RequiresWSL) {
                 $pathCheck = Ensure-ToolInPath -Tool $tool -AutoFix
                 if ($pathCheck.Accessible) {
-                    Write-ColorOutput "$($tool.Name) ist verfuegbar." -ForegroundColor Green
+                    Write-ColorOutput "$($tool.Name) is available." -ForegroundColor Green
                 }
             }
         }
@@ -1356,13 +1369,13 @@ function Update-OutdatedTools {
     }
 
     if ($outdated.Count -eq 0) {
-        Write-ColorOutput "`nAlle installierten Tools sind aktuell!" -ForegroundColor Green
+        Write-ColorOutput "`nAll installed tools are up to date!" -ForegroundColor Green
         return @{}
     }
 
     # Show what will be updated
     Write-Host ""
-    Write-ColorOutput "Folgende Tools haben Updates verfuegbar:" -ForegroundColor Yellow
+    Write-ColorOutput "The following tools have updates available:" -ForegroundColor Yellow
     Write-Host ""
 
     foreach ($key in $outdated.Keys) {
@@ -1375,10 +1388,10 @@ function Update-OutdatedTools {
     }
 
     Write-Host ""
-    $confirm = Read-Host "Updates durchfuehren? (j/N)"
+    $confirm = Read-Host "Proceed with updates? (y/N)"
 
-    if ($confirm -ne 'j' -and $confirm -ne 'J') {
-        Write-ColorOutput "Abgebrochen." -ForegroundColor Yellow
+    if ($confirm -ne 'y' -and $confirm -ne 'Y') {
+        Write-ColorOutput "Cancelled." -ForegroundColor Yellow
         return @{}
     }
 
@@ -1525,7 +1538,7 @@ function Show-EnvironmentReport {
     Write-BoxLine -Left $script:BoxChars.TopLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TopRight -Width $width -Color Cyan
 
     # Title
-    Write-BoxText -Text "UMGEBUNGSBERICHT" -Width $width -TextColor Yellow -Center
+    Write-BoxText -Text "ENVIRONMENT REPORT" -Width $width -TextColor Yellow -Center
 
     # PowerShell Section
     Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
@@ -1535,7 +1548,7 @@ function Show-EnvironmentReport {
 
     # Prerequisites Section
     Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-    Write-BoxText -Text "VORAUSSETZUNGEN" -Width $width -TextColor DarkGray
+    Write-BoxText -Text "PREREQUISITES" -Width $width -TextColor DarkGray
 
     $prereqKeys = $Report.Prerequisites.Keys | Sort-Object
     $lastIndex = $prereqKeys.Count - 1
@@ -1554,7 +1567,7 @@ function Show-EnvironmentReport {
         else {
             $symbol = $script:StatusSymbols.MISS.Symbol
             $color = $script:StatusSymbols.MISS.Color
-            $text = "$prefix $symbol $($name.PadRight(12)) Nicht installiert"
+            $text = "$prefix $symbol $($name.PadRight(12)) Not installed"
         }
 
         Write-Host $script:BoxChars.Vertical -ForegroundColor Cyan -NoNewline
@@ -1568,7 +1581,7 @@ function Show-EnvironmentReport {
             Write-Host $versionText.PadRight($width - 24) -ForegroundColor White -NoNewline
         }
         else {
-            Write-Host "Nicht installiert".PadRight($width - 24) -ForegroundColor Gray -NoNewline
+            Write-Host "Not installed".PadRight($width - 24) -ForegroundColor Gray -NoNewline
         }
         Write-Host $script:BoxChars.Vertical -ForegroundColor Cyan
 
@@ -1582,18 +1595,18 @@ function Show-EnvironmentReport {
     if ($Report.WSL.Installed) {
         $wslSymbol = $script:StatusSymbols.OK.Symbol
         $wslColor = 'Green'
-        $wslText = "$($script:BoxChars.TreeEnd) $wslSymbol WSL ist installiert"
+        $wslText = "$($script:BoxChars.TreeEnd) $wslSymbol WSL is installed"
     }
     else {
         $wslSymbol = $script:StatusSymbols.MISS.Symbol
         $wslColor = 'Red'
-        $wslText = "$($script:BoxChars.TreeEnd) $wslSymbol WSL ist nicht installiert"
+        $wslText = "$($script:BoxChars.TreeEnd) $wslSymbol WSL is not installed"
     }
 
     Write-Host $script:BoxChars.Vertical -ForegroundColor Cyan -NoNewline
     Write-Host " $($script:BoxChars.TreeEnd) " -ForegroundColor Cyan -NoNewline
     Write-Host $wslSymbol -ForegroundColor $wslColor -NoNewline
-    $statusText = if ($Report.WSL.Installed) { " WSL ist installiert" } else { " WSL ist nicht installiert" }
+    $statusText = if ($Report.WSL.Installed) { " WSL is installed" } else { " WSL is not installed" }
     Write-Host $statusText.PadRight($width - 8) -NoNewline
     Write-Host $script:BoxChars.Vertical -ForegroundColor Cyan
 
@@ -1620,7 +1633,7 @@ function Show-EnvironmentReport {
         else {
             Write-Host $script:StatusSymbols.WARN.Symbol -ForegroundColor Yellow -NoNewline
             Write-Host " $($var.PadRight(22)) " -NoNewline
-            Write-Host "Nicht gesetzt".PadRight($width - 32) -ForegroundColor DarkGray -NoNewline
+            Write-Host "Not set".PadRight($width - 32) -ForegroundColor DarkGray -NoNewline
         }
         Write-Host $script:BoxChars.Vertical -ForegroundColor Cyan
 
@@ -1717,391 +1730,262 @@ function Show-Banner {
 function Show-StatusTable {
     param([hashtable]$Status)
 
-    $wslInstalled = Test-WSLInstalled
-
-    # Column widths
-    $colWidths = @(21, 12, 12, 10)
+    # Column widths: Tool(25), Platform(11), Installed(11), Latest(10), Status(12)
+    $colWidths = @(25, 11, 11, 10, 12)
 
     # Helper function for status display
     function Get-StatusText {
         param([string]$StatusCode)
 
         switch ($StatusCode) {
-            'OK'           { return @{ Text = " ✓ OK"; Color = 'Green' } }
-            'UPDATE'       { return @{ Text = " ↑ UPD"; Color = 'Yellow' } }
-            'MISS'         { return @{ Text = " ✗ MISS"; Color = 'Red' } }
-            'WSL_REQUIRED' { return @{ Text = " ⚠ WSL"; Color = 'DarkYellow' } }
+            'OK'           { return @{ Text = "✓ OK"; Color = 'Green' } }
+            'UPDATE'       { return @{ Text = "↑ UPDATE"; Color = 'Yellow' } }
+            'MISS'         { return @{ Text = "✗ MISS"; Color = 'Red' } }
+            'WSL_REQUIRED' { return @{ Text = "⚠ WSL"; Color = 'DarkYellow' } }
             default        { return @{ Text = $StatusCode; Color = 'Gray' } }
         }
     }
 
     Write-Host ""
-    Write-ColorOutput "NATIVE WINDOWS TOOLS" -ForegroundColor Yellow
-    Write-Host ""
 
     # Table top border
     Write-TableSeparator -Widths $colWidths -Left $script:BoxChars.TableTopLeft -Right $script:BoxChars.TableTopRight -Cross $script:BoxChars.TeeDown
 
     # Header row
-    Write-TableRow -Columns @("Tool", "Installed", "Latest", "Status") -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White)
+    Write-TableRow -Columns @("Tool", "Platform", "Installed", "Latest", "Status") -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White)
 
     # Header separator
     Write-TableSeparator -Widths $colWidths
 
-    # Data rows
-    $nativeTools = $Status.Keys | Where-Object { -not $script:ToolDefinitions[$_].RequiresWSL } | Sort-Object
+    # Sort tools: Windows first, then WSL, alphabetically within each group
+    $sortedTools = $Status.Keys | Sort-Object {
+        $requiresWSL = $script:ToolDefinitions[$_].RequiresWSL
+        $name = $Status[$_].Name
+        # Sort by: 0=Windows, 1=WSL, then by name
+        @($(if ($requiresWSL) { 1 } else { 0 }), $name)
+    }
 
-    foreach ($key in $nativeTools) {
+    foreach ($key in $sortedTools) {
         $tool = $Status[$key]
         $name = $tool.Name
+        $platform = if ($tool.RequiresWSL) { "WSL" } else { "Windows" }
         $installed = if ($tool.InstalledVersion) { $tool.InstalledVersion } else { "-" }
         $latest = if ($tool.LatestVersion) { $tool.LatestVersion } else { "unknown" }
 
         $statusInfo = Get-StatusText -StatusCode $tool.Status
 
-        Write-TableRow -Columns @($name, $installed, $latest, $statusInfo.Text) -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::Cyan, [ConsoleColor]::Gray, $statusInfo.Color)
+        Write-TableRow -Columns @($name, $platform, $installed, $latest, $statusInfo.Text) -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::DarkGray, [ConsoleColor]::Cyan, [ConsoleColor]::Gray, $statusInfo.Color)
     }
 
     # Table bottom border
     Write-TableSeparator -Widths $colWidths -Left $script:BoxChars.TableBottomLeft -Right $script:BoxChars.TableBottomRight -Cross $script:BoxChars.TeeUp
 
-    Write-Host ""
-
-    # WSL Tools Section
-    $wslStatusText = if ($wslInstalled) { "✓ Installed" } else { "✗ Not Installed" }
-    $wslColor = if ($wslInstalled) { "Green" } else { "Red" }
-
-    Write-ColorOutput "WSL TOOLS " -ForegroundColor Yellow -NoNewline
-    Write-Host "(" -NoNewline
-    Write-ColorOutput $wslStatusText -ForegroundColor $wslColor -NoNewline
-    Write-Host ")"
-    Write-Host ""
-
-    # Table top border
-    Write-TableSeparator -Widths $colWidths -Left $script:BoxChars.TableTopLeft -Right $script:BoxChars.TableTopRight -Cross $script:BoxChars.TeeDown
-
-    # Header row
-    Write-TableRow -Columns @("Tool", "Installed", "Latest", "Status") -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White, [ConsoleColor]::White)
-
-    # Header separator
-    Write-TableSeparator -Widths $colWidths
-
-    # Data rows
-    $wslTools = $Status.Keys | Where-Object { $script:ToolDefinitions[$_].RequiresWSL } | Sort-Object
-
-    foreach ($key in $wslTools) {
-        $tool = $Status[$key]
-        $name = $tool.Name
-        $installed = if ($tool.InstalledVersion) { $tool.InstalledVersion } else { "-" }
-        $latest = if ($tool.LatestVersion) { $tool.LatestVersion } else { "unknown" }
-
-        $statusInfo = Get-StatusText -StatusCode $tool.Status
-
-        Write-TableRow -Columns @($name, $installed, $latest, $statusInfo.Text) -Widths $colWidths -Colors @([ConsoleColor]::White, [ConsoleColor]::Cyan, [ConsoleColor]::Gray, $statusInfo.Color)
+    # Show update count
+    $updateCount = ($Status.Values | Where-Object { $_.Status -eq 'UPDATE' }).Count
+    if ($updateCount -gt 0) {
+        Write-Host ""
+        Write-Host "  $updateCount update(s) available" -ForegroundColor Yellow
     }
 
-    # Table bottom border
-    Write-TableSeparator -Widths $colWidths -Left $script:BoxChars.TableBottomLeft -Right $script:BoxChars.TableBottomRight -Cross $script:BoxChars.TeeUp
-
     Write-Host ""
 }
 
-function Show-MainMenu {
-    $width = 64
-
-    Write-Host ""
-    # Top border
-    Write-BoxLine -Left $script:BoxChars.TopLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TopRight -Width $width -Color Cyan
-
-    # Title
-    Write-BoxText -Text "HAUPTMENU" -Width $width -TextColor Yellow -Center
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Empty line
-    Write-BoxText -Text "" -Width $width
-
-    # Menu options (2-column layout)
-    Write-BoxText -Text "[1] $($script:MenuIcons.Refresh) Status aktualisieren    [5] $($script:MenuIcons.Repair) Tool reparieren" -Width $width
-    Write-BoxText -Text "[2] $($script:MenuIcons.Install) Tools installieren      [6] $($script:MenuIcons.PowerShell) PowerShell updaten" -Width $width
-    Write-BoxText -Text "[3] $($script:MenuIcons.Update) Tools aktualisieren     [7] $($script:MenuIcons.WSL) WSL einrichten" -Width $width
-    Write-BoxText -Text "[4] $($script:MenuIcons.Check) Umgebung pruefen        [0] $($script:MenuIcons.Exit) Beenden" -Width $width
-
-    # Empty line
-    Write-BoxText -Text "" -Width $width
-
-    # Bottom border
-    Write-BoxLine -Left $script:BoxChars.BottomLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.BottomRight -Width $width -Color Cyan
+function Show-CommandHint {
+    Write-Host "  Type " -NoNewline -ForegroundColor DarkGray
+    Write-Host "/help" -NoNewline -ForegroundColor Cyan
+    Write-Host " for commands" -ForegroundColor DarkGray
     Write-Host ""
 }
 
-function Show-InstallMenu {
-    $width = 64
-
+function Show-Help {
     Write-Host ""
-    # Top border
-    Write-BoxLine -Left $script:BoxChars.TopLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TopRight -Width $width -Color Cyan
-
-    # Title
-    Write-BoxText -Text "TOOLS INSTALLIEREN" -Width $width -TextColor Yellow -Center
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # All tools option
-    Write-BoxText -Text "[1] $($script:MenuIcons.Package) Alle Tools installieren" -Width $width -TextColor Green
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Two-column layout with categories
-    Write-BoxText -Text "CODING AGENTS                    ENTWICKLUNGSTOOLS" -Width $width -TextColor DarkGray
-    Write-BoxText -Text "[2] Claude Code                  [7] VS Code" -Width $width
-    Write-BoxText -Text "[3] GitHub Copilot CLI           [8] VS Code Insiders" -Width $width
-    Write-BoxText -Text "[4] OpenCode" -Width $width
-    Write-BoxText -Text "[5] OpenAI Codex CLI             WSL TOOLS" -Width $width -TextColor White
-    Write-BoxText -Text "[6] Aider                        [9] Cursor CLI" -Width $width
-    Write-BoxText -Text "                                 [A] Cline" -Width $width
-    Write-BoxText -Text "                                 [B] Kiro CLI" -Width $width
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Back option
-    Write-BoxText -Text "[0] $($script:MenuIcons.Back) Zurueck" -Width $width
-
-    # Bottom border
-    Write-BoxLine -Left $script:BoxChars.BottomLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.BottomRight -Width $width -Color Cyan
+    Write-Host "Available Commands:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  /status, /s          " -NoNewline -ForegroundColor Cyan
+    Write-Host "Refresh tool status" -ForegroundColor White
+    Write-Host "  /upgrade, /u         " -NoNewline -ForegroundColor Cyan
+    Write-Host "Upgrade all installed tools with updates" -ForegroundColor White
+    Write-Host "  /upgrade <tool>      " -NoNewline -ForegroundColor Cyan
+    Write-Host "Upgrade specific tool" -ForegroundColor White
+    Write-Host "  /install <tool>      " -NoNewline -ForegroundColor Cyan
+    Write-Host "Install a tool (or 'all')" -ForegroundColor White
+    Write-Host "  /repair <tool>       " -NoNewline -ForegroundColor Cyan
+    Write-Host "Repair tool installation" -ForegroundColor White
+    Write-Host "  /env                 " -NoNewline -ForegroundColor Cyan
+    Write-Host "Show environment report" -ForegroundColor White
+    Write-Host "  /quit, /q            " -NoNewline -ForegroundColor Cyan
+    Write-Host "Exit" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Tools: " -NoNewline -ForegroundColor DarkGray
+    Write-Host "claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor Gray
     Write-Host ""
 }
 
-function Show-UpdateMenu {
-    $width = 64
+function Get-ToolKeyFromAlias {
+    param([string]$Alias)
 
-    Write-Host ""
-    # Top border
-    Write-BoxLine -Left $script:BoxChars.TopLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TopRight -Width $width -Color Cyan
+    $lowerAlias = $Alias.ToLower()
 
-    # Title
-    Write-BoxText -Text "TOOLS AKTUALISIEREN" -Width $width -TextColor Yellow -Center
+    # Check direct alias mapping
+    if ($script:ToolAliases.ContainsKey($lowerAlias)) {
+        return $script:ToolAliases[$lowerAlias]
+    }
 
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Update option (single smart option)
-    Write-BoxText -Text "[1] $($script:MenuIcons.Update) Installierte Tools aktualisieren" -Width $width -TextColor Green
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Two-column layout with categories
-    Write-BoxText -Text "CODING AGENTS                    ENTWICKLUNGSTOOLS" -Width $width -TextColor DarkGray
-    Write-BoxText -Text "[2] Claude Code                  [7] VS Code" -Width $width
-    Write-BoxText -Text "[3] GitHub Copilot CLI           [8] VS Code Insiders" -Width $width
-    Write-BoxText -Text "[4] OpenCode" -Width $width
-    Write-BoxText -Text "[5] OpenAI Codex CLI             WSL TOOLS" -Width $width -TextColor White
-    Write-BoxText -Text "[6] Aider                        [9] Cursor CLI" -Width $width
-    Write-BoxText -Text "                                 [A] Cline" -Width $width
-    Write-BoxText -Text "                                 [B] Kiro CLI" -Width $width
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Back option
-    Write-BoxText -Text "[0] $($script:MenuIcons.Back) Zurueck" -Width $width
-
-    # Bottom border
-    Write-BoxLine -Left $script:BoxChars.BottomLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.BottomRight -Width $width -Color Cyan
-    Write-Host ""
-}
-
-function Show-RepairMenu {
-    $width = 64
-
-    Write-Host ""
-    # Top border
-    Write-BoxLine -Left $script:BoxChars.TopLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TopRight -Width $width -Color Cyan
-
-    # Title
-    Write-BoxText -Text "TOOL REPARIEREN" -Width $width -TextColor Yellow -Center
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Two-column layout with categories
-    Write-BoxText -Text "CODING AGENTS                    ENTWICKLUNGSTOOLS" -Width $width -TextColor DarkGray
-    Write-BoxText -Text "[1] Claude Code                  [6] VS Code" -Width $width
-    Write-BoxText -Text "[2] GitHub Copilot CLI           [7] VS Code Insiders" -Width $width
-    Write-BoxText -Text "[3] OpenCode" -Width $width
-    Write-BoxText -Text "[4] OpenAI Codex CLI             WSL TOOLS" -Width $width -TextColor White
-    Write-BoxText -Text "[5] Aider                        [8] Cursor CLI" -Width $width
-    Write-BoxText -Text "                                 [9] Cline" -Width $width
-    Write-BoxText -Text "                                 [A] Kiro CLI" -Width $width
-
-    # Separator
-    Write-BoxLine -Left $script:BoxChars.TeeRight -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.TeeLeft -Width $width -Color Cyan
-
-    # Back option
-    Write-BoxText -Text "[0] $($script:MenuIcons.Back) Zurueck" -Width $width
-
-    # Bottom border
-    Write-BoxLine -Left $script:BoxChars.BottomLeft -Fill $script:BoxChars.Horizontal -Right $script:BoxChars.BottomRight -Width $width -Color Cyan
-    Write-Host ""
-}
-
-function Get-ToolKeyFromMenuChoice {
-    param(
-        [string]$Choice,
-        [string]$MenuType = 'Install'
-    )
-
-    # Install menu mapping (starts at [2])
-    if ($MenuType -eq 'Install') {
-        switch ($Choice.ToUpper()) {
-            '2' { return 'ClaudeCode' }
-            '3' { return 'CopilotCLI' }
-            '4' { return 'OpenCode' }
-            '5' { return 'Codex' }
-            '6' { return 'Aider' }
-            '7' { return 'VSCode' }
-            '8' { return 'VSCodeInsiders' }
-            '9' { return 'CursorCLI' }
-            'A' { return 'Cline' }
-            'B' { return 'KiroCLI' }
-            default { return $null }
+    # Check if it's already a valid tool key (case-insensitive)
+    foreach ($key in $script:ToolDefinitions.Keys) {
+        if ($key.ToLower() -eq $lowerAlias) {
+            return $key
         }
     }
-    # Update menu mapping (starts at [2] - [1] is "Installierte Tools aktualisieren")
-    elseif ($MenuType -eq 'Update') {
-        switch ($Choice.ToUpper()) {
-            '2' { return 'ClaudeCode' }
-            '3' { return 'CopilotCLI' }
-            '4' { return 'OpenCode' }
-            '5' { return 'Codex' }
-            '6' { return 'Aider' }
-            '7' { return 'VSCode' }
-            '8' { return 'VSCodeInsiders' }
-            '9' { return 'CursorCLI' }
-            'A' { return 'Cline' }
-            'B' { return 'KiroCLI' }
-            default { return $null }
-        }
-    }
-    # Repair menu mapping (starts at [1])
-    elseif ($MenuType -eq 'Repair') {
-        switch ($Choice.ToUpper()) {
-            '1' { return 'ClaudeCode' }
-            '2' { return 'CopilotCLI' }
-            '3' { return 'OpenCode' }
-            '4' { return 'Codex' }
-            '5' { return 'Aider' }
-            '6' { return 'VSCode' }
-            '7' { return 'VSCodeInsiders' }
-            '8' { return 'CursorCLI' }
-            '9' { return 'Cline' }
-            'A' { return 'KiroCLI' }
-            default { return $null }
-        }
-    }
+
     return $null
 }
 
+function Invoke-CLICommand {
+    param(
+        [string]$Input,
+        [ref]$Status
+    )
+
+    $trimmedInput = $Input.Trim()
+
+    # Empty input - just redisplay
+    if ([string]::IsNullOrWhiteSpace($trimmedInput)) {
+        return 'continue'
+    }
+
+    # Parse command and arguments
+    $parts = $trimmedInput -split '\s+', 2
+    $command = $parts[0].ToLower()
+    $args = if ($parts.Count -gt 1) { $parts[1].Trim() } else { $null }
+
+    # Handle commands with or without leading slash
+    $command = $command.TrimStart('/')
+
+    switch ($command) {
+        # Help
+        { $_ -in @('help', '?', 'h') } {
+            Show-Help
+            return 'continue'
+        }
+
+        # Status / Refresh
+        { $_ -in @('status', 's', 'refresh', 'r') } {
+            Write-Host "`nRefreshing status..." -ForegroundColor Cyan
+            $Status.Value = Get-AllToolStatus
+            return 'refresh'
+        }
+
+        # Upgrade
+        { $_ -in @('upgrade', 'u', 'update') } {
+            if ($args) {
+                # Upgrade specific tool
+                $toolKey = Get-ToolKeyFromAlias -Alias $args
+                if ($toolKey) {
+                    Update-CodingTool -ToolKey $toolKey
+                    $Status.Value = Get-AllToolStatus
+                }
+                else {
+                    Write-Host "Unknown tool: $args" -ForegroundColor Red
+                    Write-Host "Available tools: claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor DarkGray
+                }
+            }
+            else {
+                # Upgrade all outdated tools
+                Update-OutdatedTools
+                $Status.Value = Get-AllToolStatus
+            }
+            return 'refresh'
+        }
+
+        # Install
+        { $_ -in @('install', 'i') } {
+            if (-not $args) {
+                Write-Host "Usage: /install <tool> or /install all" -ForegroundColor Yellow
+                Write-Host "Available tools: claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor DarkGray
+                return 'continue'
+            }
+
+            if ($args.ToLower() -eq 'all') {
+                Install-AllTools -PreferredMethod $script:PreferredMethod
+            }
+            else {
+                $toolKey = Get-ToolKeyFromAlias -Alias $args
+                if ($toolKey) {
+                    Install-CodingTool -ToolKey $toolKey -PreferredMethod $script:PreferredMethod
+                }
+                else {
+                    Write-Host "Unknown tool: $args" -ForegroundColor Red
+                    Write-Host "Available tools: claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor DarkGray
+                }
+            }
+            $Status.Value = Get-AllToolStatus
+            return 'refresh'
+        }
+
+        # Repair
+        { $_ -in @('repair', 'fix') } {
+            if (-not $args) {
+                Write-Host "Usage: /repair <tool>" -ForegroundColor Yellow
+                Write-Host "Available tools: claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor DarkGray
+                return 'continue'
+            }
+
+            $toolKey = Get-ToolKeyFromAlias -Alias $args
+            if ($toolKey) {
+                Repair-ToolInstallation -ToolKey $toolKey -PreferredMethod $script:PreferredMethod
+                $Status.Value = Get-AllToolStatus
+            }
+            else {
+                Write-Host "Unknown tool: $args" -ForegroundColor Red
+                Write-Host "Available tools: claude, copilot, opencode, codex, aider, cursor, cline, kiro, vscode, vscode-insiders" -ForegroundColor DarkGray
+            }
+            return 'refresh'
+        }
+
+        # Environment
+        { $_ -in @('env', 'environment') } {
+            $envReport = Get-EnvironmentReport
+            Show-EnvironmentReport -Report $envReport
+            return 'continue'
+        }
+
+        # Quit
+        { $_ -in @('quit', 'q', 'exit', 'bye') } {
+            Write-Host "`nGoodbye!" -ForegroundColor Cyan
+            return 'quit'
+        }
+
+        # Unknown command
+        default {
+            Write-Host "Unknown command: $trimmedInput" -ForegroundColor Red
+            Write-Host "Type /help for available commands" -ForegroundColor DarkGray
+            return 'continue'
+        }
+    }
+}
+
 function Start-InteractiveMode {
+    # Store preferred method for use in Invoke-CLICommand
+    $script:PreferredMethod = $PreferredMethod
+
+    # Clear screen on startup
+    Clear-Host
+
     Show-Banner
 
-    Write-Host "Fetching tool status..."
+    Write-Host "Fetching tool status..." -ForegroundColor DarkGray
     $status = Get-AllToolStatus
 
     while ($true) {
         Show-StatusTable -Status $status
-        Show-MainMenu
+        Show-CommandHint
 
-        $choice = Read-Host "Select option"
+        $userInput = Read-Host ">"
+        $result = Invoke-CLICommand -Input $userInput -Status ([ref]$status)
 
-        switch ($choice) {
-            '1' {
-                Write-Host "`nRefreshing status..."
-                $status = Get-AllToolStatus
-            }
-            '2' {
-                # Install submenu
-                while ($true) {
-                    Show-InstallMenu
-                    $installChoice = Read-Host "Select tool to install"
-
-                    if ($installChoice -eq '0') { break }
-
-                    if ($installChoice -eq '1') {
-                        Install-AllTools -PreferredMethod $PreferredMethod
-                        $status = Get-AllToolStatus
-                        break
-                    }
-
-                    $toolKey = Get-ToolKeyFromMenuChoice -Choice $installChoice -MenuType 'Install'
-                    if ($toolKey) {
-                        Install-CodingTool -ToolKey $toolKey -PreferredMethod $PreferredMethod
-                        $status = Get-AllToolStatus
-                    }
-                }
-            }
-            '3' {
-                # Update submenu
-                while ($true) {
-                    Show-UpdateMenu
-                    $updateChoice = Read-Host "Select tool to update"
-
-                    if ($updateChoice -eq '0') { break }
-
-                    if ($updateChoice -eq '1') {
-                        Update-OutdatedTools
-                        $status = Get-AllToolStatus
-                        break
-                    }
-
-                    $toolKey = Get-ToolKeyFromMenuChoice -Choice $updateChoice -MenuType 'Update'
-                    if ($toolKey) {
-                        Update-CodingTool -ToolKey $toolKey
-                        $status = Get-AllToolStatus
-                    }
-                }
-            }
-            '4' {
-                $envReport = Get-EnvironmentReport
-                Show-EnvironmentReport -Report $envReport
-                Read-Host "`nPress Enter to continue"
-            }
-            '5' {
-                # Repair submenu
-                while ($true) {
-                    Show-RepairMenu
-                    $repairChoice = Read-Host "Select tool to repair"
-
-                    if ($repairChoice -eq '0') { break }
-
-                    $toolKey = Get-ToolKeyFromMenuChoice -Choice $repairChoice -MenuType 'Repair'
-                    if ($toolKey) {
-                        Repair-ToolInstallation -ToolKey $toolKey -PreferredMethod $PreferredMethod
-                        $status = Get-AllToolStatus
-                    }
-                }
-            }
-            '6' {
-                Update-PowerShellVersion
-                Read-Host "`nPress Enter to continue"
-            }
-            '7' {
-                Install-WSL
-                $status = Get-AllToolStatus
-                Read-Host "`nPress Enter to continue"
-            }
-            '0' {
-                Write-ColorOutput "`nGoodbye!" -ForegroundColor Cyan
-                return
-            }
-            default {
-                Write-ColorOutput "Invalid option" -ForegroundColor Red
-            }
+        if ($result -eq 'quit') {
+            break
         }
     }
 }
