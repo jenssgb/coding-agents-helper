@@ -112,7 +112,7 @@ param(
 
 #region Script Variables
 
-$script:Version = "1.1.0"
+$script:Version = "1.2.0"
 $script:LogFile = Join-Path $env:TEMP "agenthelper.log"
 
 #endregion
@@ -1770,7 +1770,7 @@ function Show-StatusTable {
         $name = $tool.Name
         $platform = if ($tool.RequiresWSL) { "WSL" } else { "Windows" }
         $installed = if ($tool.InstalledVersion) { $tool.InstalledVersion } else { "-" }
-        $latest = if ($tool.LatestVersion) { $tool.LatestVersion } else { "unknown" }
+        $latest = if ($tool.LatestVersion) { $tool.LatestVersion } else { "-" }
 
         $statusInfo = Get-StatusText -StatusCode $tool.Status
 
@@ -1843,15 +1843,15 @@ function Get-ToolKeyFromAlias {
 
 function Invoke-CLICommand {
     param(
-        [string]$Input,
+        [string]$UserInput,
         [ref]$Status
     )
 
-    $trimmedInput = $Input.Trim()
+    $trimmedInput = $UserInput.Trim()
 
-    # Empty input - just redisplay
+    # Empty input - just redisplay without pause
     if ([string]::IsNullOrWhiteSpace($trimmedInput)) {
-        return 'continue'
+        return 'refresh'
     }
 
     # Parse command and arguments
@@ -1965,29 +1965,155 @@ function Invoke-CLICommand {
     }
 }
 
+# Available commands for tab completion
+$script:AvailableCommands = @(
+    '/help', '/status', '/upgrade', '/install', '/repair', '/env', '/quit',
+    '/h', '/s', '/u', '/i', '/q', '/r', '/exit', '/refresh', '/fix', '/environment'
+)
+
+# Tool names for argument completion
+$script:ToolNames = @(
+    'claude', 'copilot', 'opencode', 'codex', 'aider',
+    'cursor', 'cline', 'kiro', 'vscode', 'vscode-insiders', 'all'
+)
+
+function Read-CommandWithCompletion {
+    param([string]$Prompt = "> ")
+
+    Write-Host $Prompt -NoNewline -ForegroundColor Cyan
+
+    $buffer = ""
+    $tabIndex = -1
+    $tabMatches = @()
+    $originalBuffer = ""
+
+    while ($true) {
+        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+
+        switch ($key.VirtualKeyCode) {
+            13 { # Enter
+                Write-Host ""
+                return $buffer
+            }
+            8 { # Backspace
+                if ($buffer.Length -gt 0) {
+                    $buffer = $buffer.Substring(0, $buffer.Length - 1)
+                    Write-Host "`b `b" -NoNewline
+                    $tabIndex = -1
+                }
+            }
+            9 { # Tab
+                if ($tabIndex -eq -1) {
+                    $originalBuffer = $buffer
+                    $parts = $buffer -split '\s+', 2
+                    $cmd = $parts[0]
+                    $arg = if ($parts.Count -gt 1) { $parts[1] } else { "" }
+
+                    # Check if completing command or argument
+                    if ($cmd -match '^/?(install|upgrade|repair|fix|i|u)$' -and $parts.Count -gt 1) {
+                        # Complete tool names
+                        $tabMatches = @($script:ToolNames | Where-Object { $_ -like "$arg*" })
+                        if ($tabMatches.Count -gt 0) {
+                            $tabIndex = 0
+                            $newBuffer = "$cmd $($tabMatches[$tabIndex])"
+                            # Clear current line and rewrite
+                            Write-Host ("`b" * $buffer.Length) -NoNewline
+                            Write-Host (" " * $buffer.Length) -NoNewline
+                            Write-Host ("`b" * $buffer.Length) -NoNewline
+                            $buffer = $newBuffer
+                            Write-Host $buffer -NoNewline
+                        }
+                    }
+                    else {
+                        # Complete commands
+                        $searchCmd = if ($cmd.StartsWith('/')) { $cmd } else { "/$cmd" }
+                        $tabMatches = @($script:AvailableCommands | Where-Object { $_ -like "$searchCmd*" })
+                        if ($tabMatches.Count -gt 0) {
+                            $tabIndex = 0
+                            # Clear current line and rewrite
+                            Write-Host ("`b" * $buffer.Length) -NoNewline
+                            Write-Host (" " * $buffer.Length) -NoNewline
+                            Write-Host ("`b" * $buffer.Length) -NoNewline
+                            $buffer = $tabMatches[$tabIndex]
+                            Write-Host $buffer -NoNewline
+                        }
+                    }
+                }
+                elseif ($tabMatches.Count -gt 1) {
+                    # Cycle through matches
+                    $tabIndex = ($tabIndex + 1) % $tabMatches.Count
+                    $parts = $originalBuffer -split '\s+', 2
+                    $cmd = $parts[0]
+
+                    if ($parts.Count -gt 1 -and $cmd -match '^/?(install|upgrade|repair|fix|i|u)$') {
+                        $newBuffer = "$cmd $($tabMatches[$tabIndex])"
+                    }
+                    else {
+                        $newBuffer = $tabMatches[$tabIndex]
+                    }
+
+                    Write-Host ("`b" * $buffer.Length) -NoNewline
+                    Write-Host (" " * $buffer.Length) -NoNewline
+                    Write-Host ("`b" * $buffer.Length) -NoNewline
+                    $buffer = $newBuffer
+                    Write-Host $buffer -NoNewline
+                }
+            }
+            27 { # Escape - clear input
+                Write-Host ("`b" * $buffer.Length) -NoNewline
+                Write-Host (" " * $buffer.Length) -NoNewline
+                Write-Host ("`b" * $buffer.Length) -NoNewline
+                $buffer = ""
+                $tabIndex = -1
+            }
+            default {
+                $char = $key.Character
+                # Only process printable characters (not null char from special keys)
+                if ($char -and $char -ne [char]0) {
+                    if ([char]::IsLetterOrDigit($char) -or $char -in @('/', '-', '_', ' ', '.')) {
+                        $buffer += $char
+                        Write-Host $char -NoNewline
+                        $tabIndex = -1
+                    }
+                }
+            }
+        }
+    }
+}
+
 function Start-InteractiveMode {
     # Store preferred method for use in Invoke-CLICommand
     $script:PreferredMethod = $PreferredMethod
 
-    # Clear screen on startup
+    # Clear screen and show initial UI
     Clear-Host
-
     Show-Banner
 
     Write-Host "Fetching tool status..." -ForegroundColor DarkGray
     $status = Get-AllToolStatus
 
-    while ($true) {
-        Clear-Host
-        Show-Banner
-        Show-StatusTable -Status $status
-        Show-CommandHint
+    Show-StatusTable -Status $status
+    Show-CommandHint
 
-        $userInput = Read-Host ">"
-        $result = Invoke-CLICommand -Input $userInput -Status ([ref]$status)
+    while ($true) {
+        $userInput = Read-CommandWithCompletion -Prompt "> "
+
+        # Skip empty input
+        if ([string]::IsNullOrWhiteSpace($userInput)) {
+            continue
+        }
+
+        $result = Invoke-CLICommand -UserInput $userInput -Status ([ref]$status)
 
         if ($result -eq 'quit') {
             break
+        }
+
+        # Redraw status table after refresh commands
+        if ($result -eq 'refresh') {
+            Write-Host ""
+            Show-StatusTable -Status $status
+            Show-CommandHint
         }
     }
 }
@@ -2085,4 +2211,5 @@ else {
 }
 
 #endregion
+
 
