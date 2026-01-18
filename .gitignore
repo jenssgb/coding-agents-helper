@@ -1,0 +1,22 @@
+# Logs
+*.log
+CodingAgentsHelper.log
+
+# Temporary files
+*.tmp
+*~
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# PowerShell
+*.ps1xml
