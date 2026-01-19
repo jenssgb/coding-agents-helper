@@ -87,7 +87,7 @@ func EnvTable() *Table {
 // CompactStatusTable creates a minimal table without borders for Claude Code style display
 func CompactStatusTable() *Table {
 	t := tablewriter.NewWriter(os.Stdout)
-	t.SetHeader([]string{"TOOL", "CURRENT", "LATEST", "RUN WITH"})
+	t.SetHeader([]string{"TOOL", "INSTALLED", "LATEST", "RUN WITH"})
 	t.SetBorder(false)
 	t.SetRowLine(false)
 	t.SetHeaderLine(true)

@@ -28,8 +28,7 @@ tools:
 
   - key: copilot-cli
     name: "GitHub Copilot CLI"
-    command: "gh"
-    subcommand: "copilot"
+    command: "gh copilot"
     version_cmd: "gh copilot --version"
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "GitHub Copilot in the CLI"
@@ -153,11 +152,12 @@ tools:
   - key: warp
     name: "Warp Terminal"
     command: "warp"
-    version_cmd: "warp --version"
-    version_pattern: '(\d+\.\d+\.\d+)'
+    version_cmd: "powershell.exe -NoProfile -Command (Get-Item $env:LOCALAPPDATA\\Programs\\Warp\\warp.exe).VersionInfo.ProductVersion"
+    version_pattern: 'v?(\d+\.\d+\.\d+\.\d+\.\d+\.\d+\.stable_\d+)'
     description: "Modern terminal with AI features"
     version_source:
-      type: unknown
+      type: winget-pkgs
+      package: "w/Warp/Warp"
     install:
       windows:
         winget: "winget install --id Warp.Warp -e --accept-source-agreements --accept-package-agreements"

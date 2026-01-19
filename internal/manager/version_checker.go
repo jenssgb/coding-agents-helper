@@ -37,6 +37,8 @@ func GetLatestVersion(tool *config.ToolDefinition) (string, error) {
 		return getLatestVSCodeVersion(tool.VersionSource.Channel)
 	case "cursor-todesktop":
 		return getLatestCursorVersion()
+	case "winget-pkgs":
+		return getLatestWingetPkgsVersion(tool.VersionSource.Package)
 	default:
 		return "", fmt.Errorf("unknown version source type: %s", tool.VersionSource.Type)
 	}
@@ -235,4 +237,55 @@ func getLatestCursorVersion() (string, error) {
 	}
 
 	return "", fmt.Errorf("could not find version in Cursor response")
+}
+
+// WingetPkgsEntry represents a directory entry from GitHub API
+type WingetPkgsEntry struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+func getLatestWingetPkgsVersion(packagePath string) (string, error) {
+	// packagePath format: "w/Warp/Warp" or "m/Microsoft/VisualStudioCode"
+	url := fmt.Sprintf("https://api.github.com/repos/microsoft/winget-pkgs/contents/manifests/%s", packagePath)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch winget-pkgs version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("winget-pkgs API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var entries []WingetPkgsEntry
+	if err := json.Unmarshal(body, &entries); err != nil {
+		return "", fmt.Errorf("failed to parse winget-pkgs response: %w", err)
+	}
+
+	// Find the latest version (last directory entry that looks like a version)
+	var latestVersion string
+	for _, entry := range entries {
+		if entry.Type == "dir" && (strings.HasPrefix(entry.Name, "v") || regexp.MustCompile(`^\d`).MatchString(entry.Name)) {
+			latestVersion = entry.Name
+		}
+	}
+
+	if latestVersion == "" {
+		return "", fmt.Errorf("no version found in winget-pkgs")
+	}
+
+	return latestVersion, nil
 }
