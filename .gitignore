@@ -1,22 +1,55 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+agenthelper
+
+# Output directories
+dist/
+bin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Dependency directories
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
 # Logs
 *.log
-agenthelper.log
 
 # Temporary files
 *.tmp
 *~
 
-# Windows
-Thumbs.db
-Desktop.ini
+# Debug
+debug
+__debug_bin
 
-# macOS
-.DS_Store
-
-# IDE
-.idea/
-.vscode/
-*.code-workspace
-
-# PowerShell
-*.ps1xml
+# Local config
+.agenthelper.yaml
+.env
+.env.local

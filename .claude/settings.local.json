@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -NoProfile -Command \"[System.IO.Directory]::GetFiles\\(''\\\\\\\\.\\\\pipe\\\\''\\) | Where-Object { $_-match ''ssh|agent|tsh|1pass|openssh|op|teleport'' }\")",
+      "Bash(cmd /c \"dir \\\\.\\\\pipe\\\\ 2>nul | findstr /i \"\"ssh agent tsh 1pass openssh op teleport\"\"\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' -Filter ''*ssh*'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' -Filter ''*1pass*'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' -Filter ''*op*'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' -Filter ''*tsh*'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' -Filter ''*teleport*'' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-ChildItem -Path ''//./pipe/'' | Where-Object { $_Name -match ''agent'' } | Select-Object Name\")",
+      "Bash(powershell.exe -NoProfile -Command 'Get-ChildItem -Path \"\"//./pipe/\"\" | Where-Object { $_.Name -like \"\"*agent*\"\" } | Select-Object Name')",
+      "Bash(powershell.exe -NoProfile -Command 'Get-ChildItem -Path \"\"//./pipe/\"\" | Where-Object { $_.Name -like \"\"*op-ssh*\"\" } | Select-Object Name')",
+      "Bash(powershell.exe -NoProfile -Command 'Get-ChildItem -Path \"\"//./pipe/\"\" | Where-Object { $_.Name -like \"\"*sign*\"\" } | Select-Object Name')",
+      "Bash(tsh status:*)",
+      "Bash(powershell.exe -NoProfile -Command 'Get-Process | Where-Object { $_.Name -like \"\"*1password*\"\" } | Select-Object Name, Id')",
+      "Bash(powershell.exe -NoProfile -Command 'Get-ChildItem -Path \"\"//./pipe/\"\" | Where-Object { $_.Name -like \"\"*tele*\"\" -or $_.Name -like \"\"*proxy*\"\" } | Select-Object Name')",
+      "Bash(tsh proxy ssh:*)",
+      "Bash(powershell.exe -NoProfile -Command 'Get-ChildItem -Path \"\"//./pipe/\"\" | Select-Object Name | Out-String -Width 200')",
+      "Bash(powershell.exe -NoProfile -Command '\\(Get-ChildItem -Path \"\"//./pipe/\"\" | Select-Object -ExpandProperty Name\\) -join \"\"`n\"\"')",
+      "Bash(findstr:*)",
+      "Bash(powershell.exe -NoProfile -Command '\\(Get-ChildItem -Path \"\"//./pipe/\"\"\\).Name | Select-String -Pattern \"\"ssh|1pass|tsh|teleport|op-\"\"')",
+      "Bash(powershell.exe -NoProfile -Command:*)",
+      "WebSearch",
+      "Bash(tsh config:*)",
+      "Bash(ssh:*)",
+      "Bash(ssh-add:*)",
+      "Bash(op ssh list:*)",
+      "Bash(tsh ls:*)",
+      "Bash(tsh ssh:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(winget uninstall:*)",
+      "Bash(where tsh:*)"
+    ]
+  }
+}

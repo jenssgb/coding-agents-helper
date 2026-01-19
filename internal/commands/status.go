@@ -134,10 +134,10 @@ func displayStatusTable(statuses []*manager.ToolStatus) {
 
 func getStatusSymbol(s *manager.ToolStatus) string {
 	if !s.IsInstalled {
-		return ui.Red(ui.SymbolError + " Not installed")
+		return ui.Red(ui.SymbolError + " Missing")
 	}
 	if s.HasUpdate {
-		return ui.Yellow(ui.SymbolWarn + " Update available")
+		return ui.Yellow(ui.SymbolWarn + " Update")
 	}
-	return ui.Green(ui.SymbolSuccess + " Up to date")
+	return ui.Green(ui.SymbolSuccess + " OK")
 }

@@ -1,3 +1,10 @@
+# AgentHelper Tool Definitions
+# This file can be customized to add/modify tool definitions.
+# Place this file in one of these locations:
+#   - ./tools.yaml (current directory)
+#   - ./config/tools.yaml (config subdirectory)
+#   - ~/.agenthelper/tools.yaml (user home directory)
+
 tools:
   - key: claude-code
     name: "Claude Code"
@@ -114,7 +121,6 @@ tools:
         brew: "brew install --cask visual-studio-code"
       linux:
         apt: "apt install code"
-        script: "curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && sudo install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sudo sh -c 'echo \"deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main\" > /etc/apt/sources.list.d/vscode.list' && sudo apt update && sudo apt install code"
 
   - key: vscode-insiders
     name: "VS Code Insiders"
@@ -129,8 +135,6 @@ tools:
         winget: "winget install --id Microsoft.VisualStudioCode.Insiders -e --accept-source-agreements --accept-package-agreements"
       darwin:
         brew: "brew install --cask visual-studio-code-insiders"
-      linux:
-        script: "curl -fsSL https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64 -o /tmp/code-insiders.deb && sudo dpkg -i /tmp/code-insiders.deb"
 
   - key: cursor
     name: "Cursor"
@@ -145,8 +149,6 @@ tools:
         winget: "winget install --id Cursor.Cursor -e --accept-source-agreements --accept-package-agreements"
       darwin:
         brew: "brew install --cask cursor"
-      linux:
-        script: "curl -fsSL https://cursor.com/download/linux -o /tmp/cursor.AppImage && chmod +x /tmp/cursor.AppImage && sudo mv /tmp/cursor.AppImage /usr/local/bin/cursor"
 
   - key: warp
     name: "Warp Terminal"
@@ -161,13 +163,11 @@ tools:
         winget: "winget install --id Warp.Warp -e --accept-source-agreements --accept-package-agreements"
       darwin:
         brew: "brew install --cask warp"
-      linux:
-        script: "curl -fsSL https://releases.warp.dev/stable/v0.2024.01.01.stable/warp-linux-x86_64.deb -o /tmp/warp.deb && sudo dpkg -i /tmp/warp.deb"
 
   - key: windows-terminal
     name: "Windows Terminal"
     command: "wt"
-    version_cmd: "wt --version"
+    version_cmd: 'powershell -NoProfile -Command (Get-AppxPackage Microsoft.WindowsTerminal).Version'
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "Modern Windows terminal"
     version_source:
@@ -181,7 +181,7 @@ tools:
   - key: windows-terminal-preview
     name: "Windows Terminal Preview"
     command: "wt"
-    version_cmd: "wt --version"
+    version_cmd: 'powershell -NoProfile -Command (Get-AppxPackage Microsoft.WindowsTerminalPreview).Version'
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "Windows Terminal Preview build"
     version_source:

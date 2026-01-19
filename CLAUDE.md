@@ -4,118 +4,114 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-**AgentHelper** - Single-file PowerShell script (`agenthelper.ps1`) that manages coding agent CLI tools on Windows. Supports both native Windows tools and WSL-based tools with install, update, repair, and status checking capabilities.
+**AgentHelper** - Cross-platform CLI tool manager for coding agents, written in Go. Manages installation, updates, and status of coding agent tools like Claude Code, GitHub Copilot CLI, Aider, VS Code, and more.
 
-## Running the Script
+## Quick Start
 
-```powershell
-# Interactive mode
-.\agenthelper.ps1
+```bash
+# Run directly from root
+./agenthelper.exe           # Interactive mode (Windows)
+./dist/agenthelper          # Interactive mode (Linux/macOS)
 
-# Check status of all tools
-.\agenthelper.ps1 -Status
-
-# JSON output for scripting
-.\agenthelper.ps1 -Status -OutputFormat Json
-
-# Install a specific tool
-.\agenthelper.ps1 -Install ClaudeCode
-
-# Install all tools
-.\agenthelper.ps1 -Install All -PreferredMethod WinGet
-
-# Update tools
-.\agenthelper.ps1 -Update All
-
-# Check environment (prerequisites, API keys)
-.\agenthelper.ps1 -Environment
+# CLI commands
+agenthelper status          # Show status of all tools
+agenthelper status --json   # JSON output for scripting
+agenthelper install <tool>  # Install a specific tool
+agenthelper update          # Update all installed tools
+agenthelper env             # Show environment report
 ```
 
-## Syntax Validation
+## Building
 
-```powershell
-# Parse file for syntax errors
-$null = [System.Management.Automation.Language.Parser]::ParseFile(
-    'agenthelper.ps1', [ref]$null, [ref]$errors
-)
-$errors  # Should be empty
+```bash
+# Build for current platform
+go build -o dist/agenthelper ./cmd/agenthelper
+
+# Or use Makefile
+make build          # Build for current platform
+make build-all      # Cross-compile for all platforms
 ```
 
-## Architecture
+## Project Structure
 
-The script is organized into `#region` blocks:
-
-| Region | Purpose |
-|--------|---------|
-| `Tool Definitions` | `$script:ToolDefinitions` hashtable - each tool has Name, Command, VersionCmd, VersionPattern, InstallMethods, UninstallMethods, VersionSource, RequiresWSL |
-| `Box-Drawing Characters` | `$script:BoxChars`, `$script:StatusSymbols`, `$script:MenuIcons` for UI rendering |
-| `UI Helper Functions` | `Write-BoxLine`, `Write-BoxText`, `Write-TableRow`, `Write-TableSeparator` |
-| `Helper Functions` | `Write-Log`, `Write-ColorOutput`, `Test-CommandExists`, `Test-WSLInstalled`, `Compare-Version` |
-| `Version Fetching` | `Get-LatestNpmVersion`, `Get-LatestGitHubVersion`, `Get-LatestPyPIVersion`, `Get-InstalledVersion`, `Get-AllToolStatus` |
-| `Installation Functions` | `Install-CodingTool`, `Install-AllTools`, `Get-BestInstallMethod` |
-| `Update Functions` | `Update-CodingTool`, `Update-AllTools` |
-| `Repair Functions` | `Repair-ToolInstallation` |
-| `Environment Functions` | `Get-EnvironmentReport`, `Show-EnvironmentReport` |
-| `UI Functions` | `Show-Banner`, `Show-StatusTable`, `Show-MainMenu`, `Show-InstallMenu`, etc. |
-| `Main Entry Point` | Parameter set handling and `Start-InteractiveMode` |
+```
+├── cmd/agenthelper/        # Entry point (main.go)
+├── internal/
+│   ├── commands/           # Cobra CLI commands
+│   │   ├── root.go         # Root command & interactive mode
+│   │   ├── status.go       # Status command
+│   │   ├── install.go      # Install command
+│   │   ├── update.go       # Update command
+│   │   ├── interactive.go  # Interactive menu system
+│   │   └── ...
+│   ├── manager/            # Business logic
+│   │   ├── tool_manager.go # Tool status & operations
+│   │   ├── installer.go    # Installation logic
+│   │   ├── updater.go      # Update logic
+│   │   └── version_checker.go
+│   ├── platform/           # OS-specific code
+│   │   ├── detector.go     # OS/Arch detection
+│   │   ├── packagemanager.go # WinGet, Brew, apt, npm, pip
+│   │   └── exec_windows.go # Hidden window support
+│   ├── config/             # Configuration
+│   │   ├── config.go       # Viper config loading
+│   │   └── embedded_tools.yaml
+│   └── ui/                 # Terminal UI
+│       ├── output.go       # Colored output
+│       ├── table.go        # Status tables
+│       ├── menu.go         # Interactive menus
+│       └── spinner.go      # Progress indicators
+├── config/tools.yaml       # External tool definitions (optional)
+├── dist/                   # Built binaries
+├── scripts/                # Install scripts
+├── go.mod
+└── Makefile
+```
 
 ## Adding a New Tool
 
-Add entry to `$script:ToolDefinitions` (around line 122):
+Edit `internal/config/embedded_tools.yaml` or `config/tools.yaml`:
 
-```powershell
-NewTool = @{
-    Name = "Display Name"
-    Command = "command-name"
-    VersionCmd = "command-name --version"
-    VersionPattern = '(\d+\.\d+\.\d+)'
-    UpdateCmd = "update-command"
-    RequiresWSL = $false  # or $true for WSL-only tools
-    VersionSource = @{
-        Type = "npm"  # or "github", "pypi", "unknown"
-        Package = "package-name"  # for npm/pypi
-        # Owner = "owner"; Repo = "repo"  # for github
-    }
-    InstallMethods = @{
-        WinGet = "winget install ..."
-        npm = "npm install -g ..."
-        # WSL = 'wsl -e bash -c "..."'  # for WSL tools
-    }
-    UninstallMethods = @{
-        WinGet = "winget uninstall ..."
-    }
-    EnvVars = @("API_KEY_NAME")  # Optional: related env vars
-}
+```yaml
+- key: new-tool
+  name: "New Tool Name"
+  command: "newtool"
+  version_cmd: "newtool --version"
+  version_pattern: '(\d+\.\d+\.\d+)'
+  description: "Description of the tool"
+  version_source:
+    type: npm          # npm, github, pypi, or unknown
+    package: "pkg-name"  # for npm/pypi
+    # owner: "user"      # for github
+    # repo: "repo"       # for github
+  install:
+    windows:
+      winget: "winget install --id Publisher.App -e"
+      npm: "npm install -g package-name"
+    darwin:
+      brew: "brew install package"
+    linux:
+      apt: "apt install package"
+  env_vars:
+    - API_KEY_NAME
 ```
 
-Then add menu entries in `Show-InstallMenu`, `Show-UpdateMenu`, `Show-RepairMenu`, and update `Get-ToolKeyFromMenuChoice`.
+## Key Dependencies
 
-## Encoding
-
-The file must be saved as **UTF-8 with BOM** for PowerShell to correctly handle the Unicode box-drawing characters. If characters display incorrectly, re-save with proper encoding.
+- **Cobra** - CLI framework
+- **Viper** - Configuration management
+- **semver** - Version comparison
+- **color** - Colored terminal output
+- **tablewriter** - ASCII tables
 
 ## Supported Tools
 
-**Native Windows:** Claude Code, GitHub Copilot CLI, OpenCode, OpenAI Codex CLI, Aider, VS Code, VS Code Insiders
+Claude Code, GitHub Copilot CLI, OpenCode, OpenAI Codex CLI, Aider, VS Code, VS Code Insiders, Cursor, Warp Terminal, Windows Terminal, Cline, Kiro CLI (Amazon Q)
 
-**WSL Required:** Cursor CLI, Cline, Kiro CLI (Amazon Q)
+## Platform Support
 
-## Versioning & Releases
+- Windows (amd64, arm64)
+- macOS (amd64, arm64)
+- Linux (amd64, arm64)
 
-This project uses **Conventional Commits** for automated versioning:
-
-```powershell
-# Commit message prefixes determine version bumps:
-git commit -m "fix: ..."     # → PATCH (1.0.x)
-git commit -m "feat: ..."    # → MINOR (1.x.0)
-git commit -m "feat!: ..."   # → MAJOR (x.0.0)
-
-# Create release (analyzes commits, bumps version, creates tag)
-.\release.ps1 -DryRun   # Preview
-.\release.ps1 -Push     # Release and push
-
-# Manual version bump
-.\bump-version.ps1 -Type patch|minor|major
-```
-
-The version is stored in `$script:Version` (line ~115) in `agenthelper.ps1`.
+Package managers: WinGet (Windows), Homebrew (macOS/Linux), apt (Debian/Ubuntu), pacman (Arch), npm, pip

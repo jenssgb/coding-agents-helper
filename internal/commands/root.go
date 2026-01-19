@@ -31,10 +31,13 @@ Manages installation, updates, and status of coding agent tools like:
   - VS Code / Cursor
   - And more...
 
-Run 'agenthelper status' to see all tools and their versions.`,
+Run without arguments for interactive mode, or use subcommands:
+  agenthelper status   - Show status of all tools
+  agenthelper install  - Install a tool
+  agenthelper update   - Update tools`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// If no subcommand is provided, show status
-		statusCmd.Run(cmd, args)
+		// If no subcommand is provided, start interactive mode
+		RunInteractive()
 	},
 }
 
