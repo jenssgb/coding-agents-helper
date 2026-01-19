@@ -1,0 +1,224 @@
+tools:
+  - key: claude-code
+    name: "Claude Code"
+    command: "claude"
+    version_cmd: "claude --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Anthropic's AI coding assistant CLI"
+    version_source:
+      type: npm
+      package: "@anthropic-ai/claude-code"
+    install:
+      windows:
+        winget: "winget install --id Anthropic.ClaudeCode -e --accept-source-agreements --accept-package-agreements"
+        npm: "npm install -g @anthropic-ai/claude-code"
+      darwin:
+        npm: "npm install -g @anthropic-ai/claude-code"
+      linux:
+        npm: "npm install -g @anthropic-ai/claude-code"
+    env_vars:
+      - ANTHROPIC_API_KEY
+
+  - key: copilot-cli
+    name: "GitHub Copilot CLI"
+    command: "gh"
+    subcommand: "copilot"
+    version_cmd: "gh copilot --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "GitHub Copilot in the CLI"
+    version_source:
+      type: github
+      owner: github
+      repo: gh-copilot
+    install:
+      windows:
+        winget: "winget install --id GitHub.cli -e --accept-source-agreements --accept-package-agreements && gh extension install github/gh-copilot"
+      darwin:
+        brew: "brew install gh && gh extension install github/gh-copilot"
+      linux:
+        apt: "apt install gh && gh extension install github/gh-copilot"
+
+  - key: opencode
+    name: "OpenCode"
+    command: "opencode"
+    version_cmd: "opencode --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Open source AI coding assistant"
+    version_source:
+      type: github
+      owner: opencode-ai
+      repo: opencode
+    install:
+      windows:
+        script: "irm https://opencode.ai/install.ps1 | iex"
+      darwin:
+        script: "curl -fsSL https://opencode.ai/install.sh | bash"
+      linux:
+        script: "curl -fsSL https://opencode.ai/install.sh | bash"
+
+  - key: codex-cli
+    name: "OpenAI Codex CLI"
+    command: "codex"
+    version_cmd: "codex --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "OpenAI Codex command-line tool"
+    version_source:
+      type: npm
+      package: "@openai/codex"
+    install:
+      windows:
+        npm: "npm install -g @openai/codex"
+      darwin:
+        npm: "npm install -g @openai/codex"
+      linux:
+        npm: "npm install -g @openai/codex"
+    env_vars:
+      - OPENAI_API_KEY
+
+  - key: aider
+    name: "Aider"
+    command: "aider"
+    version_cmd: "aider --version"
+    version_pattern: 'aider (\d+\.\d+\.\d+)'
+    description: "AI pair programming in your terminal"
+    version_source:
+      type: pypi
+      package: aider-chat
+    install:
+      windows:
+        pip: "pip install aider-chat"
+        winget: "winget install --id Aider.Aider -e --accept-source-agreements --accept-package-agreements"
+      darwin:
+        pip: "pip install aider-chat"
+        brew: "brew install aider"
+      linux:
+        pip: "pip install aider-chat"
+    env_vars:
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+
+  - key: vscode
+    name: "Visual Studio Code"
+    command: "code"
+    version_cmd: "code --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Microsoft Visual Studio Code editor"
+    version_source:
+      type: github
+      owner: microsoft
+      repo: vscode
+    install:
+      windows:
+        winget: "winget install --id Microsoft.VisualStudioCode -e --accept-source-agreements --accept-package-agreements"
+      darwin:
+        brew: "brew install --cask visual-studio-code"
+      linux:
+        apt: "apt install code"
+        script: "curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg && sudo install -o root -g root -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/ && sudo sh -c 'echo \"deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main\" > /etc/apt/sources.list.d/vscode.list' && sudo apt update && sudo apt install code"
+
+  - key: vscode-insiders
+    name: "VS Code Insiders"
+    command: "code-insiders"
+    version_cmd: "code-insiders --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Visual Studio Code Insiders build"
+    version_source:
+      type: unknown
+    install:
+      windows:
+        winget: "winget install --id Microsoft.VisualStudioCode.Insiders -e --accept-source-agreements --accept-package-agreements"
+      darwin:
+        brew: "brew install --cask visual-studio-code-insiders"
+      linux:
+        script: "curl -fsSL https://code.visualstudio.com/sha/download?build=insider&os=linux-deb-x64 -o /tmp/code-insiders.deb && sudo dpkg -i /tmp/code-insiders.deb"
+
+  - key: cursor
+    name: "Cursor"
+    command: "cursor"
+    version_cmd: "cursor --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "AI-first code editor"
+    version_source:
+      type: unknown
+    install:
+      windows:
+        winget: "winget install --id Cursor.Cursor -e --accept-source-agreements --accept-package-agreements"
+      darwin:
+        brew: "brew install --cask cursor"
+      linux:
+        script: "curl -fsSL https://cursor.com/download/linux -o /tmp/cursor.AppImage && chmod +x /tmp/cursor.AppImage && sudo mv /tmp/cursor.AppImage /usr/local/bin/cursor"
+
+  - key: warp
+    name: "Warp Terminal"
+    command: "warp"
+    version_cmd: "warp --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Modern terminal with AI features"
+    version_source:
+      type: unknown
+    install:
+      windows:
+        winget: "winget install --id Warp.Warp -e --accept-source-agreements --accept-package-agreements"
+      darwin:
+        brew: "brew install --cask warp"
+      linux:
+        script: "curl -fsSL https://releases.warp.dev/stable/v0.2024.01.01.stable/warp-linux-x86_64.deb -o /tmp/warp.deb && sudo dpkg -i /tmp/warp.deb"
+
+  - key: windows-terminal
+    name: "Windows Terminal"
+    command: "wt"
+    version_cmd: "wt --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Modern Windows terminal"
+    version_source:
+      type: github
+      owner: microsoft
+      repo: terminal
+    install:
+      windows:
+        winget: "winget install --id Microsoft.WindowsTerminal -e --accept-source-agreements --accept-package-agreements"
+
+  - key: windows-terminal-preview
+    name: "Windows Terminal Preview"
+    command: "wt"
+    version_cmd: "wt --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Windows Terminal Preview build"
+    version_source:
+      type: unknown
+    install:
+      windows:
+        winget: "winget install --id Microsoft.WindowsTerminal.Preview -e --accept-source-agreements --accept-package-agreements"
+
+  - key: cline
+    name: "Cline"
+    command: "cline"
+    version_cmd: "cline --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Autonomous coding agent for VS Code"
+    version_source:
+      type: npm
+      package: "@anthropic-ai/cline"
+    install:
+      windows:
+        npm: "npm install -g @anthropic-ai/cline"
+      darwin:
+        npm: "npm install -g @anthropic-ai/cline"
+      linux:
+        npm: "npm install -g @anthropic-ai/cline"
+
+  - key: kiro
+    name: "Kiro CLI (Amazon Q)"
+    command: "kiro"
+    version_cmd: "kiro --version"
+    version_pattern: '(\d+\.\d+\.\d+)'
+    description: "Amazon Q Developer CLI"
+    version_source:
+      type: unknown
+    install:
+      windows:
+        script: "irm https://d2zx0g3frk3g2n.cloudfront.net/install.ps1 | iex"
+      darwin:
+        brew: "brew install amazon-q"
+      linux:
+        script: "curl -fsSL https://d2zx0g3frk3g2n.cloudfront.net/install.sh | bash"
