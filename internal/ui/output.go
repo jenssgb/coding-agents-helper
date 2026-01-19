@@ -21,6 +21,7 @@ var (
 	SymbolError   = "✗"
 	SymbolWarn    = "!"
 	SymbolInfo    = "●"
+	SymbolUpdate  = "●"
 	SymbolPending = "○"
 
 	// Debug mode

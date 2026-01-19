@@ -36,8 +36,8 @@ Run without arguments for interactive mode, or use subcommands:
   agenthelper install  - Install a tool
   agenthelper update   - Update tools`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// If no subcommand is provided, start interactive mode
-		RunInteractive()
+		// If no subcommand is provided, start prompt mode (Claude Code style)
+		RunPromptMode()
 	},
 }
 

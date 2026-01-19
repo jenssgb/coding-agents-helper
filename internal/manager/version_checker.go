@@ -33,6 +33,10 @@ func GetLatestVersion(tool *config.ToolDefinition) (string, error) {
 		return getLatestGitHubVersion(tool.VersionSource.Owner, tool.VersionSource.Repo)
 	case "pypi":
 		return getLatestPyPIVersion(tool.VersionSource.Package)
+	case "vscode-update":
+		return getLatestVSCodeVersion(tool.VersionSource.Channel)
+	case "cursor-todesktop":
+		return getLatestCursorVersion()
 	default:
 		return "", fmt.Errorf("unknown version source type: %s", tool.VersionSource.Type)
 	}
@@ -163,4 +167,72 @@ func ExtractVersion(output, pattern string) string {
 		return matches[0]
 	}
 	return ""
+}
+
+// VSCodeUpdateInfo represents VS Code update API response
+type VSCodeUpdateInfo struct {
+	ProductVersion string `json:"productVersion"`
+	Name           string `json:"name"`
+}
+
+func getLatestVSCodeVersion(channel string) (string, error) {
+	if channel == "" {
+		channel = "stable"
+	}
+	url := fmt.Sprintf("https://update.code.visualstudio.com/api/update/win32-x64-user/%s/latest", channel)
+
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch VS Code version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("VS Code update API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var info VSCodeUpdateInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return "", fmt.Errorf("failed to parse VS Code response: %w", err)
+	}
+
+	// Extract just the version number (remove "-insider" suffix if present)
+	version := strings.Split(info.ProductVersion, "-")[0]
+	return version, nil
+}
+
+func getLatestCursorVersion() (string, error) {
+	url := "https://download.todesktop.com/230313mzl4w4u92/latest.yml"
+
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch Cursor version: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Cursor API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Parse YAML manually - look for "version: X.Y.Z"
+	lines := strings.Split(string(body), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "version:") {
+			version := strings.TrimPrefix(line, "version:")
+			return strings.TrimSpace(version), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find version in Cursor response")
 }

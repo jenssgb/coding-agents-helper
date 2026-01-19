@@ -35,10 +35,11 @@ type ToolDefinition struct {
 
 // VersionSource defines where to check for latest versions
 type VersionSource struct {
-	Type    string `yaml:"type" mapstructure:"type"` // npm, github, pypi, unknown
+	Type    string `yaml:"type" mapstructure:"type"` // npm, github, pypi, vscode-update, cursor-todesktop, unknown
 	Package string `yaml:"package,omitempty" mapstructure:"package"`
 	Owner   string `yaml:"owner,omitempty" mapstructure:"owner"`
 	Repo    string `yaml:"repo,omitempty" mapstructure:"repo"`
+	Channel string `yaml:"channel,omitempty" mapstructure:"channel"` // for vscode-update: stable, insider
 }
 
 // InstallSpec defines installation commands for different package managers

@@ -53,7 +53,7 @@ tools:
     description: "Open source AI coding assistant"
     version_source:
       type: github
-      owner: opencode-ai
+      owner: anomalyco
       repo: opencode
     install:
       windows:
@@ -111,9 +111,8 @@ tools:
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "Microsoft Visual Studio Code editor"
     version_source:
-      type: github
-      owner: microsoft
-      repo: vscode
+      type: vscode-update
+      channel: stable
     install:
       windows:
         winget: "winget install --id Microsoft.VisualStudioCode -e --accept-source-agreements --accept-package-agreements"
@@ -129,7 +128,8 @@ tools:
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "Visual Studio Code Insiders build"
     version_source:
-      type: unknown
+      type: vscode-update
+      channel: insider
     install:
       windows:
         winget: "winget install --id Microsoft.VisualStudioCode.Insiders -e --accept-source-agreements --accept-package-agreements"
@@ -143,7 +143,7 @@ tools:
     version_pattern: '(\d+\.\d+\.\d+)'
     description: "AI-first code editor"
     version_source:
-      type: unknown
+      type: cursor-todesktop
     install:
       windows:
         winget: "winget install --id Cursor.Cursor -e --accept-source-agreements --accept-package-agreements"

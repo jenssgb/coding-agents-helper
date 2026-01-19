@@ -2,6 +2,10 @@ package commands
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"sort"
+	"strings"
 
 	"github.com/jschneider/agenthelper/internal/config"
 	"github.com/jschneider/agenthelper/internal/manager"
@@ -9,81 +13,300 @@ import (
 	"github.com/jschneider/agenthelper/internal/ui"
 )
 
-// RunInteractive starts the interactive menu mode
-func RunInteractive() {
-	ui.PrintBanner(version)
+// RunPromptMode starts the Claude Code style prompt mode
+func RunPromptMode() {
+	plat := platform.Current()
 
-	mainMenu()
-}
+	// Print banner with platform info
+	ui.PrintPromptBanner(version, plat.String())
 
-func mainMenu() {
+	// Show initial status
+	refreshStatus()
+
+	// Setup Ctrl+C handler
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	go func() {
+		<-sigChan
+		fmt.Println("\nGoodbye!")
+		os.Exit(0)
+	}()
+
+	// Main command loop
 	for {
-		menu := ui.NewMenu("Main Menu")
-		menu.AddItem("1", "Status", "Show status of all tools", func() bool {
-			showStatusInteractive()
-			return false
-		})
-		menu.AddItem("2", "Install", "Install coding tools", func() bool {
-			showInstallMenu()
-			return false
-		})
-		menu.AddItem("3", "Update", "Update installed tools", func() bool {
-			showUpdateMenu()
-			return false
-		})
-		menu.AddItem("4", "Repair", "Repair tool installation", func() bool {
-			showRepairMenu()
-			return false
-		})
-		menu.AddItem("5", "Run", "Run a coding tool", func() bool {
-			showRunMenu()
-			return false
-		})
-		menu.AddItem("6", "Environment", "Show environment report", func() bool {
-			showEnvInteractive()
-			return false
-		})
-		menu.AddBackOption("Exit")
+		input := ui.PromptCommand("agenthelper> ")
+		cmd, args := ui.ParseCommand(input)
 
-		menu.Display()
-		return
+		if cmd == "" {
+			continue
+		}
+
+		// Handle commands (with or without leading slash)
+		switch strings.TrimPrefix(cmd, "/") {
+		case "help", "h", "?":
+			ui.ShowCommandHelp()
+		case "status", "s":
+			refreshStatus()
+		case "install", "i":
+			handleInstall(args)
+		case "update", "u":
+			handleUpdate(args)
+		case "repair", "r":
+			handleRepair(args)
+		case "run":
+			handleRun(args)
+		case "env", "e":
+			showEnvReport()
+		case "exit", "quit", "q":
+			fmt.Println("Goodbye!")
+			return
+		default:
+			ui.Warn("Unknown command: %s - Type /help for available commands", cmd)
+		}
 	}
 }
 
-func showStatusInteractive() {
+func refreshStatus() {
 	mgr := manager.NewManager()
-	plat := platform.Current()
-
-	fmt.Println()
-	ui.Print("Platform: %s", ui.Cyan(plat.String()))
-	fmt.Println()
 
 	spinner := ui.NewSpinner("Checking tool status...")
 	spinner.Start()
 	statuses := mgr.GetAllToolStatus()
 	spinner.Stop()
 
-	displayStatusTable(statuses)
-	ui.WaitForEnter()
+	displayCompactStatus(statuses)
 }
 
-func showEnvInteractive() {
-	// Reuse env command logic
-	runEnvReport()
-	ui.WaitForEnter()
+func displayCompactStatus(statuses []*manager.ToolStatus) {
+	fmt.Println()
+
+	// Sort by status: OK -> Update -> Missing
+	sort.Slice(statuses, func(i, j int) bool {
+		return statusPriority(statuses[i]) < statusPriority(statuses[j])
+	})
+
+	table := ui.CompactStatusTable()
+
+	for _, s := range statuses {
+		symbol := getStatusSymbolCompact(s)
+		current := "-"
+		latest := "-"
+		runWith := s.Tool.Command
+
+		if s.IsInstalled {
+			current = s.InstalledVer
+		}
+		if s.LatestVer != "" {
+			latest = s.LatestVer
+		}
+
+		table.AddRow([]string{
+			fmt.Sprintf("%s %s", symbol, s.Tool.Name),
+			current,
+			latest,
+			runWith,
+		})
+	}
+
+	table.Render()
+
+	// Print compact legend
+	fmt.Println()
+	fmt.Printf("  %s OK  %s Update  %s Missing\n",
+		ui.Green(ui.SymbolSuccess),
+		ui.Yellow(ui.SymbolUpdate),
+		ui.Red(ui.SymbolError),
+	)
+	fmt.Println()
 }
 
-func runEnvReport() {
+// statusPriority returns sort priority: 0=OK, 1=Update, 2=Missing
+func statusPriority(s *manager.ToolStatus) int {
+	if s.IsInstalled && !s.HasUpdate {
+		return 0 // OK
+	}
+	if s.IsInstalled && s.HasUpdate {
+		return 1 // Update available
+	}
+	return 2 // Not installed
+}
+
+func getStatusSymbolCompact(s *manager.ToolStatus) string {
+	if !s.IsInstalled {
+		return ui.Red(ui.SymbolError)
+	}
+	if s.HasUpdate {
+		return ui.Yellow(ui.SymbolUpdate)
+	}
+	return ui.Green(ui.SymbolSuccess)
+}
+
+func handleInstall(args []string) {
+	if len(args) == 0 {
+		ui.Warn("Usage: /install <tool-key>")
+		ui.Print("Available tools:")
+		listAvailableTools()
+		return
+	}
+
+	toolKey := args[0]
+	tool, ok := config.GetTool(toolKey)
+	if !ok {
+		ui.Error("Unknown tool: %s", toolKey)
+		listAvailableTools()
+		return
+	}
+
+	mgr := manager.NewManager()
+
+	// Check if already installed
+	if ver, err := mgr.GetInstalledVersion(tool); err == nil {
+		ui.Warn("%s is already installed (v%s)", tool.Name, ver)
+		return
+	}
+
+	ui.Info("Installing %s...", tool.Name)
+	result := mgr.Install(tool)
+	if result.Success {
+		ui.Success("Installed %s: %s", tool.Name, result.Output)
+	} else {
+		ui.Error("Failed to install %s: %v", tool.Name, result.Error)
+	}
+}
+
+func handleUpdate(args []string) {
+	mgr := manager.NewManager()
+
+	if len(args) == 0 {
+		// Update all installed tools
+		ui.Info("Updating all installed tools...")
+
+		spinner := ui.NewSpinner("Checking for updates...")
+		spinner.Start()
+		results := mgr.UpdateAll()
+		spinner.Stop()
+
+		for key, result := range results {
+			if result.Success {
+				if result.WasUpToDate {
+					ui.Info("%s: already up to date", key)
+				} else {
+					ui.Success("%s: %s", key, result.Output)
+				}
+			} else if result.Error != nil {
+				ui.Error("%s: %v", key, result.Error)
+			}
+		}
+		return
+	}
+
+	toolKey := args[0]
+	tool, ok := config.GetTool(toolKey)
+	if !ok {
+		ui.Error("Unknown tool: %s", toolKey)
+		listAvailableTools()
+		return
+	}
+
+	// Check if installed
+	if _, err := mgr.GetInstalledVersion(tool); err != nil {
+		ui.Error("%s is not installed", tool.Name)
+		return
+	}
+
+	ui.Info("Updating %s...", tool.Name)
+	result := mgr.Update(tool)
+	if result.Success {
+		if result.WasUpToDate {
+			ui.Info("%s is already up to date", tool.Name)
+		} else {
+			ui.Success("Updated %s: %s", tool.Name, result.Output)
+		}
+	} else {
+		ui.Error("Failed to update %s: %v", tool.Name, result.Error)
+	}
+}
+
+func handleRepair(args []string) {
+	if len(args) == 0 {
+		ui.Warn("Usage: /repair <tool-key>")
+		return
+	}
+
+	toolKey := args[0]
+	tool, ok := config.GetTool(toolKey)
+	if !ok {
+		ui.Error("Unknown tool: %s", toolKey)
+		listAvailableTools()
+		return
+	}
+
+	mgr := manager.NewManager()
+
+	// Check if installed
+	if _, err := mgr.GetInstalledVersion(tool); err != nil {
+		ui.Error("%s is not installed", tool.Name)
+		return
+	}
+
+	if !ui.PromptConfirm(fmt.Sprintf("Repair %s? This will uninstall and reinstall", tool.Name)) {
+		return
+	}
+
+	ui.Info("Repairing %s...", tool.Name)
+
+	// Uninstall
+	ui.Print("  Uninstalling...")
+	mgr.Uninstall(tool)
+
+	// Reinstall
+	ui.Print("  Reinstalling...")
+	result := mgr.Install(tool)
+	if result.Success {
+		ui.Success("Repaired %s: %s", tool.Name, result.Output)
+	} else {
+		ui.Error("Failed to repair %s: %v", tool.Name, result.Error)
+	}
+}
+
+func handleRun(args []string) {
+	if len(args) == 0 {
+		ui.Warn("Usage: /run <tool-key>")
+		listAvailableTools()
+		return
+	}
+
+	toolKey := args[0]
+	tool, ok := config.GetTool(toolKey)
+	if !ok {
+		ui.Error("Unknown tool: %s", toolKey)
+		listAvailableTools()
+		return
+	}
+
+	mgr := manager.NewManager()
+
+	// Check if installed
+	if _, err := mgr.GetInstalledVersion(tool); err != nil {
+		ui.Error("%s is not installed", tool.Name)
+		return
+	}
+
+	ui.Info("Starting %s...", tool.Name)
+	runToolDirect(tool)
+}
+
+func showEnvReport() {
 	plat := platform.Current()
 
 	fmt.Println()
-	ui.Print("%s Platform", ui.Bold("●"))
+	ui.Print("%s Platform", ui.Bold("*"))
 	fmt.Printf("  OS:   %s\n", plat.OS)
 	fmt.Printf("  Arch: %s\n", plat.Arch)
 	fmt.Println()
 
 	// Package Managers
-	ui.Print("%s Package Managers", ui.Bold("●"))
+	ui.Print("%s Package Managers", ui.Bold("*"))
 	managers := []struct {
 		name    string
 		checker func() bool
@@ -104,7 +327,7 @@ func runEnvReport() {
 	fmt.Println()
 
 	// Prerequisites
-	ui.Print("%s Prerequisites", ui.Bold("●"))
+	ui.Print("%s Prerequisites", ui.Bold("*"))
 	prereqs := []string{"node", "npm", "python", "pip", "git"}
 	for _, p := range prereqs {
 		status := ui.Red(ui.SymbolError)
@@ -113,202 +336,16 @@ func runEnvReport() {
 		}
 		fmt.Printf("  %s %s\n", status, p)
 	}
-}
-
-func showInstallMenu() {
-	tools := config.GetAllTools()
-	mgr := manager.NewManager()
-
-	options := make([]string, 0, len(tools)+1)
-	options = append(options, "All tools")
-	for _, t := range tools {
-		// Check if installed
-		status := ui.Red("not installed")
-		if _, err := mgr.GetInstalledVersion(&t); err == nil {
-			status = ui.Green("installed")
-		}
-		options = append(options, fmt.Sprintf("%s (%s)", t.Name, status))
-	}
-
-	selected := ui.PromptSelect("Select tool to install", options)
-	if selected < 0 {
-		return
-	}
-
-	if selected == 0 {
-		// Install all
-		if ui.PromptConfirm("Install all tools?") {
-			ui.Info("Installing all tools...")
-			results := mgr.InstallAll("")
-			for key, result := range results {
-				if result.Success {
-					ui.Success("%s: %s", key, result.Output)
-				} else {
-					ui.Error("%s: %v", key, result.Error)
-				}
-			}
-		}
-	} else {
-		tool := tools[selected-1]
-		if ui.PromptConfirm(fmt.Sprintf("Install %s?", tool.Name)) {
-			result := mgr.Install(&tool)
-			if result.Success {
-				ui.Success(result.Output)
-			} else {
-				ui.Error("Installation failed: %v", result.Error)
-			}
-		}
-	}
-
-	ui.WaitForEnter()
-}
-
-func showUpdateMenu() {
-	tools := config.GetAllTools()
-	mgr := manager.NewManager()
-
-	// Only show installed tools
-	installedTools := []config.ToolDefinition{}
-	for _, t := range tools {
-		if _, err := mgr.GetInstalledVersion(&t); err == nil {
-			installedTools = append(installedTools, t)
-		}
-	}
-
-	if len(installedTools) == 0 {
-		ui.Warn("No tools installed")
-		ui.WaitForEnter()
-		return
-	}
-
-	options := make([]string, 0, len(installedTools)+1)
-	options = append(options, "All installed tools")
-	for _, t := range installedTools {
-		ver, _ := mgr.GetInstalledVersion(&t)
-		options = append(options, fmt.Sprintf("%s (v%s)", t.Name, ver))
-	}
-
-	selected := ui.PromptSelect("Select tool to update", options)
-	if selected < 0 {
-		return
-	}
-
-	if selected == 0 {
-		// Update all
-		if ui.PromptConfirm("Update all installed tools?") {
-			ui.Info("Updating all tools...")
-			results := mgr.UpdateAll()
-			for key, result := range results {
-				if result.Success {
-					if result.WasUpToDate {
-						ui.Info("%s: already up to date", key)
-					} else {
-						ui.Success("%s: %s", key, result.Output)
-					}
-				} else if result.Error != nil {
-					ui.Error("%s: %v", key, result.Error)
-				}
-			}
-		}
-	} else {
-		tool := installedTools[selected-1]
-		if ui.PromptConfirm(fmt.Sprintf("Update %s?", tool.Name)) {
-			result := mgr.Update(&tool)
-			if result.Success {
-				ui.Success(result.Output)
-			} else {
-				ui.Error("Update failed: %v", result.Error)
-			}
-		}
-	}
-
-	ui.WaitForEnter()
-}
-
-func showRepairMenu() {
-	tools := config.GetAllTools()
-	mgr := manager.NewManager()
-
-	// Only show installed tools
-	installedTools := []config.ToolDefinition{}
-	for _, t := range tools {
-		if _, err := mgr.GetInstalledVersion(&t); err == nil {
-			installedTools = append(installedTools, t)
-		}
-	}
-
-	if len(installedTools) == 0 {
-		ui.Warn("No tools installed to repair")
-		ui.WaitForEnter()
-		return
-	}
-
-	options := make([]string, len(installedTools))
-	for i, t := range installedTools {
-		options[i] = t.Name
-	}
-
-	selected := ui.PromptSelect("Select tool to repair", options)
-	if selected < 0 {
-		return
-	}
-
-	tool := installedTools[selected]
-	if ui.PromptConfirm(fmt.Sprintf("Repair %s? This will uninstall and reinstall.", tool.Name)) {
-		ui.Info("Repairing %s...", tool.Name)
-
-		// Uninstall
-		ui.Print("  Uninstalling...")
-		mgr.Uninstall(&tool)
-
-		// Reinstall
-		ui.Print("  Reinstalling...")
-		result := mgr.Install(&tool)
-		if result.Success {
-			ui.Success("Repair complete: %s", result.Output)
-		} else {
-			ui.Error("Repair failed: %v", result.Error)
-		}
-	}
-
-	ui.WaitForEnter()
-}
-
-func showRunMenu() {
-	tools := config.GetAllTools()
-	mgr := manager.NewManager()
-
-	// Only show installed tools
-	installedTools := []config.ToolDefinition{}
-	for _, t := range tools {
-		if _, err := mgr.GetInstalledVersion(&t); err == nil {
-			installedTools = append(installedTools, t)
-		}
-	}
-
-	if len(installedTools) == 0 {
-		ui.Warn("No tools installed to run")
-		ui.WaitForEnter()
-		return
-	}
-
-	options := make([]string, len(installedTools))
-	for i, t := range installedTools {
-		options[i] = fmt.Sprintf("%s (%s)", t.Name, t.Command)
-	}
-
-	selected := ui.PromptSelect("Select tool to run", options)
-	if selected < 0 {
-		return
-	}
-
-	tool := installedTools[selected]
-	ui.Info("Starting %s...", tool.Name)
-	ui.Print("(The tool will open in a new window or take over this terminal)")
 	fmt.Println()
+}
 
-	// Run the tool
-	runToolDirect(&tool)
+func listAvailableTools() {
+	tools := config.GetAllTools()
+	fmt.Println()
+	for _, t := range tools {
+		fmt.Printf("  %s - %s\n", ui.Cyan(t.Key), t.Name)
+	}
+	fmt.Println()
 }
 
 func runToolDirect(tool *config.ToolDefinition) {
